@@ -90,15 +90,57 @@
 剩下的两章讲述了如何将三种方法结合。
 
 ## 2 Multi-arm Bandits
-多悬臂摇臂机
+多悬臂摇臂机：经典的nonassociative, evaluative feedback problem
+* nonassociative： most prior work involving evaluative feedback has been done，从而避免了大部分强化学习问题的复杂性。
+* evaluate feedback是与instructive feedback相对应的概念，后者用于监督学习，可以明确指出一个行为是否是好的
 
 ### 2.1 A k-Armed Bandit Problem
 
+问题：你将重复面临一个有k种答案的选择，每一次选择会依据动作得到一个符合固定概率分布的以数值衡量的奖励。目标是最大化在给定时间范围内的奖励总数，比如1000步。
+这就是k摇臂赌博问题，显然通过最大化选择有最高reward的摇臂即可获得最佳结果。
+令t时刻动作At，相关的奖励为Rt，动作a的价值value为q*(a)
+则有q*(a) = E(Rt | At = a)，即动作a的价值是在该时刻选择动作a的reward的期望。
+显然，如果能够知道每个动作的value，这个问题就非常好解决了：只需要每次选择reward最大的摇臂即可获得最大值。但我们假设不知道所有的奖励，使得动作a的estimated value为Qt(a) 约等于q*(a)。
+如果能够维护这个动作的价值的估计，这样就使得每一个时间点至少有一个动作的值是最大的，这就是greedy action。通过选择greedy action，就是exploiting现有动作的知识。如果选择nongreedy的动作，那就是exploring，因为这将会提升你对非贪心动作的认识。
+explore存在的必要性是因为你不知道nongreedy中是否存在着比greedy action更好的结果，因为目前的值都只是估计值，会随着动作而进行改变。
+
 ### 2.2 Action-Value Methods
 
+下面这条式子用一种比较自然的方式来估计动作的价值value，使用过去的选择。
+![式2.1](pic/RLIntro_2_1.png)
+其中1_predicate是一个随机变量，当predicate为true的时候为1，为false的时候为0。如果值为0，则设为某个默认值比如Q1(a)=0。该式实际上就是一个简单平均，被称为sample-average method。这只是一种简单的估计动作价值的方法，也不是最好的一种。
+暂时放下如何估计的问题，来考虑如何根据这种估计方式来选择动作。
+最简单的动作选择方式就是采用最大的价值估计值，即选择出一个动作A*t，使得Qt(A*t) = max_a Qt(a)，即使得Qt最大的动作。这被称为greedy action selection，如
+![式2.2](pic/RLIntro_2_2.png)
+这种方式可以深挖(exploit)当前的知识并最大化即时的奖励(reward)，几乎没有在其他动作上下功夫去探索它们之中是否有更好的情况。
+一种简单的改变就是在大多数时候都是贪心的，但是在概率为epsilon的时候随机选择，这个被称为epsilon-greedy method。这样的好处是随着步数无限增加，几乎所有的动作都会被探索无数遍，从而使得Qt(a)收敛到q*(a)，这也暗示了选择最佳动作的概率会收敛到大于1-epsilon。
+为了严格证明greedy和epsilon-greedy方法的有效性，我们使用一个测试问题来在数值上进行衡量。假设有2000个k=10的k摇臂问题，对于每个问题，如图2.1所示，动作的价值value服从均值为0、方差为1的高斯分布。
+![图2.1](pic/RLIntro_Fig_2_1.png)
+
+此时，当一个学习算法在t时刻选择动作At时，会从mean q*(At)、方差为1的正态分布中获得一个值来作为奖励Rt的值，如图2-1所示。这被称作10-armed testbed。
+对于任何学习方法，我们可以使用其在该环境下1000步交互的表现和行为来进行衡量。
+
+图2.2将greedy method与两种贪心算法(epsilon = 0.01/0.1)进行了比较。上述方法都是用sample-average technique对动作的价值进行估计，上面的表显示epsilon=0.1的时候在开始会比贪心算法稍微慢一点，但是后面显著优于。贪心算法每次只对最优进行深挖，所以会趋向于平均值。下图表示epsilon-greedy method更可能会取得最佳动作。
+epsilon=0.01会比epsilon=0.1要慢一点，但最终结果会更好。因此也可能通过将epsilon随时间减少从而取得较好的结果。
+epsilon-greedy的优势是依据于任务的，比如方差更大的时候，显然增加探索的可能性会取得更优的结果。其他一些假设也会改变结果，比如
+![图2.2](pic/RLIntro_Fig_2_2.png)
 ### 2.3 Incremental Implementation
+累增式的定义
+Qn = (R1+R2+...+Rn-1)/(n-1)，显然可以通过维护一个全体reward的和来进行估计，但这样会带来CPU和内存上的压力。
+![式2.3](pic/RLIntro_2_3.png)
+以此得到bandit具体算法
+![bandit](pic/RLIntro_bandit_algorithm.png)
+式(2.3)的更新规则将会多次出现，其泛用形式如下：
+![式2.4](pic/RLIntro_2_4.png)
+后面的表达式（Target - OldEstimate）就是估计的误差。
+需要注意，该方法中使用的StepSize参数是随着时间变化而变化的，在本文中我们使用alpha来代替这个参数，或alpha_t(a)，有时候会令它等于1/n。
 
 ### 2.4 Tracking a Nonstationary Problem
+
+上述问题在一个静态环境下表现良好，但是如果摇臂会随着时间而改变，事情就会发生变化。在这种情况下，对更近的奖励进行加权是更好的选择，一种方式是使用一个常数的step-size parameter，比如下式
+![式2.5](pic/RLIntro_2_5.png)
+![式2.6](pic/RLIntro_2_6.png)
+其中alpha是(0,1]的一个常数，我们把它称为加权平均weighted average，因为式(2.6)的两个权值之和为1.
 
 ### 2.5 Optimistic Initial Value
 

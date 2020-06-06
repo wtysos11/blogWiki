@@ -7,11 +7,32 @@ Code中原则上只保留一些代码，具体留什么我也没想好，主要�
 * [csdn博客地址](https://blog.csdn.net/u012837895)
 
 ## 详细说明
-之前我在使用NoteBook仓库作为博客，但是发现自己的习惯不太好，而且有一些东西因为涉及到他人的知识产权也不好公开出来，所以新建了一个博客缓存页面（虽然最后还是删掉之后开了）。平时我会将自己收集到的一些知识与自己技术上的所思所想记录下来，其中比较好的部分会整理出来发到博客上。这样也避免博客上都是一些很琐碎的东西，会更有组织，看起来比较舒服。
+
 本仓库内所有文章均用作非盈利目的，允许任意形式的转载，但请表明出处。
 计划使用三个层次：
-1. 仓库内存放运作基础级别的文件。
-2 issue内存放任意级别的文章
-3 wiki内保存目录级别，进行高度组织。
+1. 仓库内存放本地文章的备份，所有图片原则上放在仓库，这样可以直接下载下来本地观看。仓库内尽量使用内部引用。
+2. issue内存放任意级别的文章
+3. wiki内保存目录级别，进行高度组织。
 
-会在Project内放入计划表
+* [论文主页面](https://github.com/wtysos11/blogWiki/wiki/%E8%AE%BA%E6%96%87%E4%B8%BB%E9%A1%B5%E9%9D%A2)，计算机论文阅读笔记与总结。
+* 模块学习主页面，以模块为单位组织学习资料
+* 快速复习主页面，复健资料集合，对过去学习过的知识进行快速上手
+
+## 课程与总结
+* [软件测试](https://github.com/wtysos11/blogWiki/issues/5)
+* [408-计算机网络概述](https://github.com/wtysos11/NoteBook/issues/26)
+* [408-操作系统概述](https://github.com/wtysos11/NoteBook/issues/52)
+* [408-计算机组成概述](https://github.com/wtysos11/NoteBook/issues/30)
+* [408-数据结构概述](https://github.com/wtysos11/NoteBook/issues/37)
+* [考研政治-概述](https://github.com/wtysos11/NoteBook/issues/33)，[考研政治-归纳](https://github.com/wtysos11/NoteBook/issues/67)，[考研政治-毛中特帽子归纳](https://github.com/wtysos11/NoteBook/issues/69)
+
+## 视频课程
+### 工具
+* [知乎分享-VS Code从入门到进阶](https://github.com/wtysos11/blogWiki/issues/48)
+
+## 资源整理
+* [时间序列分析资源整理](https://github.com/wtysos11/blogWiki/issues/35)
+
+## 语言
+### python
+* [python logging包](https://github.com/wtysos11/blogWiki/issues/37)

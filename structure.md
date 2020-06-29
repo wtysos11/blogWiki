@@ -20,3 +20,7 @@
 ## 语言
 ### python
 * [python logging包](https://github.com/wtysos11/blogWiki/issues/37)
+
+## 论文阅读
+
+* [2020预备学期六月论文阅读](长期项目/研究生入学/20200629例会/2020六月论文泛读一期.md)，6月29日完成的对多服务环境论文的概览性阅读，包括一些综述论文，还有一些没有完成。[20200629会议纪要](https://github.com/wtysos11/NoteBook/issues/144#issuecomment-651015951)

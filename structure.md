@@ -45,6 +45,9 @@
 * [Head First Java笔记](学习笔记/语言/java/Head%20First%20Java.md)
 * [java8实战](学习笔记/语言/java/java8实战.md)
 
+## 项目实践
+
+* [model-based强化学习调度器复现](项目实践/model-based强化学习复现.md)
 
 ## 有意思
 

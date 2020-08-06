@@ -48,7 +48,8 @@
 ## 项目实践
 
 * [model-based强化学习调度器复现](项目实践/model-based强化学习复现.md)
+* [kubernetes虚拟机多级环境部署](项目实践/kubernetes虚拟机多机环境部署.md)
 
-## 有意思
+## 有意思的文章
 
 [贝叶斯网络](https://juejin.im/post/5d29509fe51d455070227030#heading-10)

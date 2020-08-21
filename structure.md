@@ -41,7 +41,7 @@ bigquery:
 * [bigquery](学习笔记/数据库/bigquery官方教程.md)
 
 mysql:
-* [mysql](学习笔记/数据库/mysql学习记录.md)
+* [mysql](学习笔记/数据库/mysql学习记录.md)，这个是总结性质的文章，负责速查速记以及一些快速QA的知识。
 
 读书笔记：
 * [SQL必知必会](学习笔记/数据库/SQL必知必会.md)

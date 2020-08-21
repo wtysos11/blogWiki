@@ -1,10 +1,18 @@
 # SQL必知必会
 
+标签：数据库 读书笔记 快速复习
+
 关于SQL必知必会这本书的学习笔记。
+
+## 本文的用途
+
+方便自己日后快速回忆相关知识，以较为精炼的语句记录重点知识与例子，适合没有学过SQL的人初步了解与看过一遍的人快速回忆。
+
+因为我主要使用的是mysql，因此所有的例子一定会与mysql兼容（最新版本，不是5以下的老版本）
 
 ## 读后感
 
-挺好的一本入门书籍，使用例子提供了对SQL的感性认识，与菜鸟教程配合用来极速入门非常的不错。
+挺好的一本入门书籍，使用例子提供了对SQL的感性认识，与菜鸟教程配合用来极速入门非常的不错，不容易遗漏知识点
 
 本文主要是对重点内容的摘录与一些笔记记录，而且只是会用级别，具体到性能优化需要再阅读其他书籍。
 
@@ -396,3 +404,330 @@ ON Customers.cust_id = Orders.cust_id;
 ```
 
 外联结是一个比较复杂的内容，这里不进行细究。详情可以查看[mysql学习记录](/学习笔记/数据库/mysql学习记录.md)中知识点记录的第二个知识点：外联结
+
+### 13.3 使用带聚集函数的联结
+
+虽然前面的聚集函数的例子都是从一个表中汇总数据，但是这些函数也可以与联结一起使用。
+
+```sql
+SELECT Customers.cust_id,
+    COUNT(Orders.order_num) AS num_ord
+FROM Customers INNER JOIN Orders
+ON Customers.cust_id = Orders.cust_id
+GROUP BY Customers.cust_id;
+```
+
+上述选择语句用内联接使得Customers与Orders相关联，同时按照客户id进行分组。因此，函数可以对每个顾客的订单进行计数并且返回。
+
+## 第十四章 组合查询
+
+### 14.1 组合查询
+
+一般称为并UNION或者复合查询，包含以下两种情况：
+1. 在一个查询中从不同的表返回结构数据
+2. 对一个表执行多个查询，按一个查询返回数据。
+
+一般等效为多个WHERE子句
+
+### 14.2 创建组合查询
+
+使用UNION本身是很简单的，只需要在多个SELECT语句之间放上关键字UNION即可。需要注意的是其与使用多个WHERE之间的差别。
+
+例如以下两个查询是相同的：
+```sql
+SELECT cust_name,cust_contact,cust_email
+FROM Customers
+WHERE cust_state in ('IL','IN','MI')
+UNION
+SELECT cust_name,cust_contact,cust_email
+FROM Customers
+WHERE cust_name = 'Fun4All';
+```
+
+```sql
+SELECT cust_name,cust_contact,cust_email
+FROM Customers
+WHERE cust_state in ('IL','IN','MI')
+OR cust_name = 'Fun4All';
+```
+
+上述两个查询是相同的，都是找到在illinois、Indiana、Michigan州的客户或者所有用户名为Fun4All的客户。
+
+UNION对于较复杂的过滤条件有可能会表达的更简单清晰（虽然不一定会更快）
+
+规则：
+1. UNION必须有两条或以上的SELECT语句组合而成
+2. UNION中结果的所有列必须是相同的
+3. 列数据类型必须是兼容的，可以不是完全相同的，但要可以完成隐式转换
+
+使用UNION ALL会不取消重复的行，否则DBMS可能会自动取消。
+
+组合查询时，只用在最后加上一个ORDER BY子句即可，不能加上多个ORDER BY。
+
+## 第十五章 插入数据
+
+使用INSERT插入语句，例如
+
+```sql
+INSERT INTO Customers
+VALUES ('1000','USA');
+```
+
+上述例子将一个新客户插入到表中，每一列的数据在VALUES中给出。但是这种方式不安全，给定列名会更好，这样即使顺序与数据库中的表名不同也可以顺利插入。而且下面这种方式还可以插入部分行（没有列出的部分为NULL或默认值，如果定义中列不允许会出现错误）
+
+```sql
+INSERT INTO Customers(cust_id,cust_state)
+VALUES ('1000','USA');
+```
+
+插入检索出的数据：
+```sql
+INSERT INTO Customers(cust_id,
+    cust_contact,
+    cust_email,
+    cust_name,
+    cust_address,
+    cust_city,
+    cust_state,
+    cust_zip,
+    cust_country)
+SELECT cust_id,
+    cust_contact,
+    cust_email,
+    cust_name,
+    cust_address,
+    cust_city,
+    cust_state,
+    cust_zip,
+    cust_country
+FROM CustNew;
+```
+
+为了简单起见，上述SELECT INSERT使用了相同的列名，但是实际上并不要求列名相同，更重要的是列的位置，或者说对应关系。
+
+同时INSERT通常只能插入一行，如果要插入多行的话应该调用多次INSERT或者使用INSERT SELECT。
+
+### 15.2 从一个表复制到另一个表
+
+```sql
+SELECT *
+INTO CustCopy
+FROM Customers;
+```
+
+mysql的语句有所不同
+
+```sql
+CREATE TABLE CustCopy AS
+SELECT * FROM Customers;
+```
+
+## 第十六章 更新和删除数据
+
+### 16.1 更新数据
+
+有两种使用UPDATE的方式：
+1. 更新表中的特定行
+2. 更新表中的所有行
+
+UPDATE语句包含三个部分：
+* 要更新的表
+* 列名和它们的新值
+* 确定要更新哪些行的过滤条件
+
+```sql
+UPDATE Customers
+SET cust_email = 'kim@thetoystore.com'
+WHERE cust_id = '10000000';
+```
+
+在更新多列的时候只需要使用一个SET命令，每个`列=值`之间用逗号分隔。
+
+### 16.2 删除数据
+
+使用DELETE来进行删除
+
+```sql
+DELETE FROM Customers
+WHERE cust_id = '10000006';
+```
+
+PS:
+* 一定不要省略WHERE
+* 在执行该语句前可以使用相同的条件用SELECT检查所要操作的数据。
+
+SQL可能没有撤销功能，要更小心地使用UPDATE和DELETE。（虽然一般都是会有的）
+
+## 第十七章 创建和操纵表
+
+### 17.1 创建表
+
+一般使用CREATE TABLE，比如
+```sql
+CREATE TABLE Products
+(
+    prod_id CHAR(10) NOT NULL,
+    vend_id CHAR(10) NOT NULL,
+    prod_name CHAR(254) NOT NULL,
+    prod_price DECIMAL(8,2) NOT NULL,
+    prod_desc VARCHAR(1000) NULL
+);
+```
+
+声明主键应该使用PRIMARY，
+
+指定默认值使用DEFAULT + 值
+
+### 17.2 更新表
+
+一般使用ALTER TABLE
+
+```sql
+ALTER TABLE Vendors
+ADD vend_phone CHAR(20);
+```
+该语句给Vendors表增加了一个名为vend_phone的列，数据类型为CHAR。
+
+删除使用DROP
+
+### 17.3 删除表
+
+`DROP TABLE CustCopy` 
+
+### 17.4 重命名表
+
+不同的数据库有着不同的实现。
+
+## 第十八课 使用视图
+
+使用视图的原因很多，比如为了方便地重用SQL语句，简化复杂操作等。
+
+### 18.2 创建视图
+
+`CREATE VIEW`可以创建视图（不存在的），使用DROP语句可以删除视图。
+
+例如：
+```sql
+CREATE VIEW ProductCustomers AS
+SELECT cust_name,cust_contact,prod_id
+FROM Customers,Orders,OrderItems
+WHERE Customers.cust_id = Orders.cust_id
+AND OrderItems.order_num = Order.order_num;
+```
+
+## 第十九课 使用存储过程
+
+经常会有一些复杂操作需要多条语句才能够完成。存储过程，就是为以后使用而保存的多条SQL语句。
+
+一般使用EXECUTE来执行（mysql为call），接受存储过程名和需要传递给它的参数。
+
+## 19.4 创建存储过程
+
+不同数据库格式不同，选自菜鸟教程
+
+```sql
+mysql> delimiter $$　　#将语句的结束符号从分号;临时改为两个$$(可以是自定义)
+mysql> CREATE PROCEDURE delete_matches(IN p_playerno INTEGER)
+    -> BEGIN
+    -> 　　DELETE FROM MATCHES
+    ->    WHERE playerno = p_playerno;
+    -> END$$
+Query OK, 0 rows affected (0.01 sec)
+ 
+mysql> delimiter;　　#将语句的结束符号恢复为分号
+```
+
+END后面可以为两个美元符号，或者是两个斜杠。使用是只需要传递参数即可使用。
+
+[菜鸟教程-msql存储过程](https://www.runoob.com/w3cnote/mysql-stored-procedure.html)，很多细节没有涉及。
+
+## 第二十章 管理事务处理
+
+如何使用COMMIT和ROLLBACK语句管理事务处理
+
+使用事务处理，通过确保成批的SQL操作要么完全执行，要么完全不执行，从而确保数据库的完整性。
+
+### 20.2 控制事务处理
+
+同样由于DBMS的不同实现很不一样，这里以[mysql](https://www.runoob.com/mysql/mysql-transaction.html)的为准
+
+事务的ACID属性自然不必多言，可以使用`BEGIN TRANSACTION`显式开启一个事务，也可以直接`begin;`
+
+最后使用`commit;`提交事务
+
+出现问题使用`rollback;`来回滚
+
+savepoint时实现子事务的方式，事务可以混滚到savepoint而不影响savepoint创建前的变化，这样就不需要放弃整个事务。
+
+使用SAVEPOINT
+
+```sql
+SAVEPOINT savepoint_name;    // 声明一个 savepoint
+...
+ROLLBACK TO savepoint_name;  // 回滚到savepoint
+RELEASE SAVEPOINT savepoint_name;  // 删除指定保留点
+```
+ROLLBACK或COMMIT后SAVEPOINT会自动释放。
+
+## 第二十一章 使用游标
+
+有些时候需要在检索出来的行中前进或者后退一行或多行，因此有了游标。
+
+游标是一个DBMS服务器上的数据库查询，不是一个SELECT语句，而是该语句检索出的结果集。
+
+### 21.2 使用游标
+
+* 使用游标前必须声明它，此时并没有执行具体检索
+* 一旦生命，就必须打开游标并使用，此时会实际检索数据
+* 结束必须关闭游标，如果可能则释放
+
+创建游标：
+```sql
+declare CustCursor CURSOR
+FOR
+SELECT * FROM Customers
+WHERE cust_email is NULL
+```
+
+使用游标：
+首先使用`OPEN CustCursor`打开游标，这在大多数DBMS中是相同的。
+
+然后使用FETCH遍历
+
+```
+REPEAT
+    FETCH CustCursor INTO CustRecord;
+until done end REPEAT;
+```
+
+最后关闭`CLOSE CustCursor`
+
+## 第二十二章 高级SQL特性
+
+### 22.1 约束
+
+主键，是一种特别的约束，保证一列中的值是唯一的。
+
+在声明表的时候加上PRIMARY KEY即可确定主键
+
+外键，表中的一列，其值必须列在另一个表的主键中。
+
+### 22.2 索引
+
+索引是用来加速搜索和排序操作的速度，一般可以通过`CREATE INDEX indexName ON table_name (column_name)`，删除时使用DROP即可。
+
+### 22.3 触发器
+
+触发器是特殊的存储过程，在特定的数据库活动发生时自动执行。
+
+`CREATE TRIGGER trigger_name trigger_time trigger_event ON tbl_name FOR EACH ROW trigger_stmt`
+
+例如：
+```sql
+CREATE TRIGGER test_tt AFTER DELETE ON `test`  FOR EACH ROW
+BEGIN
+DECLARE s VARCHAR(20) DEFAULT 'hello';
+SET s = 'world';
+UPDATE `member` SET `name` = s WHERE id = OLD.id;
+END
+```

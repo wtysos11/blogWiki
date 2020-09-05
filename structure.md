@@ -68,3 +68,30 @@ mysql:
 
 ## 其他内容
 
+单词：
+obligation
+adhere
+indispensable
+monetary
+degradation
+congestion
+adversely
+taxonomy
+monolith 
+pros and cons
+holistically
+spur
+commensurate
+comprise
+surrogate
+consolidation
+salient
+prone
+coarse
+expiry
+bewildering
+validity
+consolidate
+agnostic
+cynical
+agnostic

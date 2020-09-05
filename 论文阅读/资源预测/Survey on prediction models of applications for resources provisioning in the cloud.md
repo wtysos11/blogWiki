@@ -5,6 +5,12 @@
 
 内容：总结了目前最新的application prediction methods
 
+* 第二部分：不同角度的应用预测
+* 第三部分：应用预测中的建模方法
+* 第四部分：探索所采用的预测方法并描述优点与缺点
+* 第五部分：比较不同的方法并探索它们的挑战
+* 第六部分：总结全文
+
 ## 2 Application Prediction
 
 * 定义：在多角度预测未来一段时间应用的行为，比如它所承受的负载以及表现。
@@ -27,13 +33,22 @@ performance:
 * throughput
 * response time
 
+许多文章关注的是resources utilization，这些方法预测资源占用率以及不同资源的占用与负载来完成任务。
+
+资源预测的一个重要任务就是决定最佳的资源分配数(best resource allocation according to application performance)，另一个领域是resource demand。一般来说，resource usage会比resource demand要小。
+
+参考文献：
+* Zhang 2012:Zhang, Q., Zhani, M.F., Zhang, S., Zhu, Q., Boutaba, R., Hellerstein, J.L., 2012. Dynamic energy-aware capacity provisioning for cloud computing environments. In: Proceedings of the 9th International Conference on Autonomic computing, ICAC ’12, , 2371562, pp. 145–154ACM. http://dx.doi.org/10.1145/2371536.2371562.
+
 ### 2.2 Characteristics, challenges, needs and evaluation metrics
+
+关于主要的特性，挑战，需要和评价指标（应用预测）
 
 #### 2.2.1 The needs for application prediction
 
 进行应用预测的原因：
 1. Application Management：在云环境中，应用之间互相有资源上的共享，因此他们的资源需求需要被合适地预测，即分配给应用的资源应当于其流量成比例。这里会尽量避免QoS下降
-2. Resource/Cost Management：为了最大化资源利用率。
+2. Resource/Cost Management：为了最大化资源利用率，因此需要对资源的需要进行预测。
 
 #### 2.2.2 Prediction characteristics
 
@@ -41,15 +56,22 @@ performance:
 * Accurate：预测模型可以用预测结果的准确性来评估。
 * Adaptability(online learning)：云环境经常在变动，如果预测模型应该能够很好地适应这种变动。随着时间的推移，模型应该能够增进对应用行为的了解并降低预测误差。
 * proactive：VM的创建和迁移是需要大量时间的，因此预测需要提前进行，在流量发生变动前即完成预测。
-* Historic Data：不同种类的数据被分配给了云服务，要利用这些不同的数据。
+  
+Historic Data：不同种类的数据被分配给了云服务，要利用这些不同的数据。
+* 硬件部分，包括处理器的核心数量、存储和网络
+* 软件部分，包括数据库连接数、线程池
+
+大部分文献都注重于两个方面的预测（内存和CPU），或者SLA指标以及性能指标的预测。
 
 #### 2.2.3 Prediction challenges
 
 * Complexity：预测模型所消耗的资源不能显著高于应用资源，不然得不偿失。
 * Data granularity：初始阶段要决定去监控哪一个资源，下一步要决定监控的区间。区间不能过小也不能过大。
-* Pattern Length：在大多数预测模型中，模式长度是固定的。该如何确定这个擦汗高难度
+* Pattern Length：在大多数预测模型中，模式长度是固定的。大部分模型都会使用一个滑动窗口来进行预测，提取出模式。这是一个困难的工作，同时会影响到应用行为的精度。
 
 ### 2.3 Evaluation metrics
+
+评价指标
 
 * Cost：由SLA违约或资源浪费所带来的误差
 * Success：成功指标决定预测模型能够多精准地预测应用未来的行为
@@ -57,6 +79,8 @@ performance:
 * Error：用来评估真实行为和预测行为的差别。
 
 ## 3 Modeling approaches for the application prediction 
+
+应用预测中的建模方法
 
 ### 3.1 Table driven methods
 

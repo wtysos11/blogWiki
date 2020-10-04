@@ -48,7 +48,11 @@
 ## 项目实践
 
 * [model-based强化学习调度器复现](项目实践/model-based强化学习复现.md)
-* [kubernetes虚拟机多级环境部署](项目实践/kubernetes虚拟机多机环境部署.md)
+
+### k8s
+
+* [kubernetes虚拟机多级环境部署](项目实践/k8s/kubernetes虚拟机多机环境部署.md)
+* [在kubernetes平台上部署SQL](项目实践/k8s/在kubernetes平台上部署SQL.md))
 
 ## 有意思的文章
 

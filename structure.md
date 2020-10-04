@@ -34,11 +34,23 @@
 ## 资源整理
 * [时间序列分析资源整理](https://github.com/wtysos11/blogWiki/issues/35)
 
-## 语言
-### python
+## 文章
+### 数据库
+
+bigquery:
+* [bigquery](学习笔记/数据库/bigquery官方教程.md)
+
+mysql:
+* [mysql](学习笔记/数据库/mysql学习记录.md)，这个是总结性质的文章，负责速查速记以及一些快速QA的知识。
+
+读书笔记：
+* [SQL必知必会](学习笔记/数据库/SQL必知必会.md)
+
+### 语言
+#### python
 * [python logging包](https://github.com/wtysos11/blogWiki/issues/37)
 
-### java
+#### java
 
 读书笔记：
 
@@ -57,3 +69,6 @@
 ## 有意思的文章
 
 [贝叶斯网络](https://juejin.im/post/5d29509fe51d455070227030#heading-10)
+
+## 其他内容
+

@@ -72,3 +72,6 @@ mysql:
 
 ## 其他内容
 
+Less Provisioning: A Hybrid Resource Scaling Engine for Long-running Services with Tail Latency Guarantees，使用RUBiS进行测试，流量发送似乎自带了。
+
+Web Application Resource Requirements Estimation based on the Workload Latent Features，使用两个benchmark：RUBiS和Acme Air（https://github.com/ acmeair/acmeair）。这个是VM版本的。

@@ -18,7 +18,7 @@
 
 可以使用`kubectl exec -it shell-demo -- /bin/bash`来进入名为`shell-demo`的容器中执行命令`/bin/bash`
 
-双破折号`--`用于将要传递给命令的参数与kubectl的参数分开。
+双破折号`--`用于将要传递给命令的参数与kubectl的参数分开。(PS： 实际上是不用的)
 
 在普通的命令窗口（不是shell）可以执行单个命令。比如`kubectl exec shell-demo env`相当于在容器内执行`env`
 
@@ -89,7 +89,7 @@ pod名称为`productpage-test-66b95cdbd8-phrw8`，istio注入pod。
 
 使用`kubectl exec -it productpage-test-66b95cdbd8-phrw8 --container container-0 -n=wtytest /bin/bash`即可进入在线容器。
 
-开始的时候比较菜，只知道使用`top`命令，然后发现top刷新起来不好记录。随后发现python有个很好用的库`psutil`，比如可以使用下面的代码实现类似top的效果：
+开始的时候比较菜，只知道使用`top`命令，然后发现top刷新起来不好记录，而且容器似乎无法隔离`/proc/stat`，即从原理上存在问题。随后发现python有个很好用的库`psutil`，比如可以使用下面的代码实现类似top的效果：
 
 ```python
 for x in range(10):
@@ -100,7 +100,9 @@ for x in range(10):
 
 这里我们遇到了两个问题，一个是如何在k8s的平台下计算pod的CPU占用率；另外一个是是否要将istio注入到每个pod中的container: istio-proxy的CPU占用率纳入考量。
 
-#### kubernetes中的CPU测算（基于prometheus）
+#### 使用prometheus测算容器的CPU占用率
+
+思考过程：
 
 这个一直以来我都没有太弄明白。根据[issue](https://github.com/google/cadvisor/issues/2026)中某位大佬的说法，如果使用kubernetes来运行容器的话，`container_spec_cpu_shares`为容器的请求量，而`container_spec_cpu_quota`为容器的限制量。从这个角度来说，应该是采用`container_cpu_usage_seconds_total/container_spec_cpu_quota * constant`的方式来计算（虽然我有些没有弄明白，不是应该计算当前申请的CPU中有多少被消耗吗）。
 
@@ -117,11 +119,18 @@ for x in range(10):
 * container_cpu_user_seconds_total，User CPU累积占用时间
 
 此外[docs of cAdvisor](https://docs.signalfx.com/en/latest/integrations/agent/monitors/cadvisor.html)更详尽地介绍了cAdvisor能够抓到的指标，包括：
-* container_spec_cpu_period ,Gauge型，The number of microseconds that the CFS scheduler uses as a window when limiting container processes。
+* container_spec_cpu_period ,Gauge型，The number of microseconds that the CFS scheduler uses as a window when limiting container processes。这个值在我的k8s集群里面是固定的，都是100k。
 * container_spec_cpu_quota，Gauge型，In CPU quota for the CFS process scheduler. In K8s this is equal to the containers’s CPU limit as a fraction of 1 core and multiplied by the container_spec_cpu_period. So if the CPU limit is 500m (500 millicores) for a container and the container_spec_cpu_period is set to 100,000, this value will be 50,000. 这个值在kubernetes中应该与容器的CPU限制量是相关的（PS：CPU限制中的m表示千分之一个CPU）
 * container_spec_cpu_shares，Gauge型，CPU share of the container，应该是实际分配给容器的CPU数量。
-
 
 其中[CFS Scheduler](https://www.kernel.org/doc/Documentation/scheduler/sched-bwc.txt)应该是关于CPU限额的调度。The bandwidth allowed for a group is specified using a quota and period. Within
 each given "period" (microseconds), a group is allowed to consume only up to
 "quota" microseconds of CPU time. 这也是container_spec_cpu_quota这个值为什么是这么计算的原因。
+
+#### 总结
+
+我之前使用`top`命令中的`%CPU`来作为CPU占用率指标，但是我发现这个实际上是CPU使用率指标。即在单核的时候如果CPU占用率是30%，则`%CPU`值为30；若双核占用率是30%，则`%CPU`值为60……
+
+因此，`container_cpu_usage_seconds_total`确实指的是vCPU的使用量，单位是s，而且与`top`命令拿到的数值是一样的。
+
+而根据`/proc`目录中拿到的信息，`container_spec_cpu_quota`为CPU限制量，而且也是container内部能够感知到的量（即从容器内部拿CPU量的时候，是拿的限制量而不是实际分配量，而且拿的是`pod`的限制量……）。至于`container_spec_cpu_share`，这个是实际分配给pod的CPU，但是对于pod来说是看不见的。（可能在不同的实现中表现不一样，但是在华为的k8s集群上确实如此）

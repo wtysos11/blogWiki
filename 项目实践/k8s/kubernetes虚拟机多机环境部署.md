@@ -316,3 +316,8 @@ istio之前有一套prometheus的系统，因此我一开始并没有考虑安�
 * [istio-ingress control](https://istio.io/latest/zh/docs/tasks/traffic-management/ingress/ingress-control/)
 
 不过istio自己有一个ingressgateway，可能又与普通的K8s集群有所区别。需要等我把组会需要的东西做完了，才能把这个坑给填上。
+
+#### 最简单的方式
+
+其实istio在安装的时候就已经给prometheus和grafana配置了对应的服务。最简单的方法就是将这些服务修改一些，将ClusterIP改成NodePort，这样就可以在外网通过访问特定的端口，从而访问到指定的服务了。
+

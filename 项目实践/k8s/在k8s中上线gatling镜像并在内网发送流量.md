@@ -79,8 +79,11 @@ RUN rm /etc/apt/sources.list\
   && apt-get install -y openjdk-8-jdk 
   #&& apt-get install gatling
 
-CMD ["/gatling/bin/gatling.sh < command.txt"]
+#CMD ["sh","-c","/gatling/bin/gatling.sh", "<","/test/command.txt"]
+CMD ["sleep infinity"]
 ```
+
+我失败了好多次……这里的命令行有一个exec form和shell form的[区别](https://stackoverflow.com/questions/42805750/dockerfile-cmd-shell-versus-exec-form)。我之前使用`CMD ["/gatling/bin/gatling.sh < /test/command.txt"]`的时候系统经常提示我找不到后面那个输入文件，真是让人摸不着头脑。然后换用exec form之后gatling根本输入
 
 其中移除gatling内系统自带脚本的目的是为了让用户脚本一定排在第一位。由于版本不同，系统自带脚本可能有所区别，需要注意。
 
@@ -88,7 +91,6 @@ CMD ["/gatling/bin/gatling.sh < command.txt"]
 * command.txt，内含`1`+空格，表示输入给`gatling.sh`的内容
 * nettest.scala，一个可以读取`$Test`作为目标地址的gatling脚本
 * gatling，解压官方包gatling.zip后的文件夹
-
 
 执行测试部分命令：
 * `docker build . -t ubuntu-wtynettest:0.0.3`

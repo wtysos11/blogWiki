@@ -156,11 +156,98 @@ EOF
 
 ### 调整网关
 
+#### 该如何写网关
+
+将ingressgateway暴露出来并不是一件容易的事情，特别是需要做到特定的要求。之前实验室在华为云上时，可以通过Istio的负载均衡器自动配置，实现访问`外网IP：指定端口`的形式就可以访问到对应的服务。因此我也需要在新的集群上实现同样的功能。
+
+以productpage-test应用为例，通过访问`外网IP：19002`即可直接访问到该服务，并且路由全部正常转发。
+
+其ingressgateway为
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  annotations:
+    creator: asm
+  creationTimestamp: 2020-10-09T04:27:30Z
+  generation: 1
+  name: productpage-test0-wtytest-gateway
+  namespace: istio-system
+  resourceVersion: "121292656"
+  selfLink: /apis/networking.istio.io/v1alpha3/namespaces/istio-system/gateways/productpage-test0-wtytest-gateway
+   uid: be5a3234-09e7-11eb-b6b2-fa163ebf73fb
+ spec:
+   selector:
+     istio: ingressgateway
+   servers:
+   - hosts:
+     - 139.9.57.167
+     port:
+       name: http-be57584a
+       number: 19002
+       protocol: http 
+```
+
+有一个对应的LB型的service，nodePort为30609，port和targetPort均为19002。
+
+对应的服务为9080的ClusterIP型，忽略。
+
+VirtualService：
+```yaml
+spec:
+   gateways:
+   - productpage-test0-wtytest-gateway.istio-system.svc.cluster.local
+   - mesh
+   hosts:
+   - productpage-test0
+   - 外网IP
+   http:
+   - match:
+     - gateways:
+       - productpage-test0-wtytest-gateway.istio-system.svc.cluster.local
+       port: 19002
+       uri: {}
+     route:
+     - destination:
+         host: productpage-test0
+         port:
+           number: 9080
+         subset: v1
+   - match:
+     - gateways:
+       - mesh 
+       port: 9080
+     route:
+     - destination:
+         host: productpage-test0
+         port:
+           number: 9080
+         subset: v1  
+```
+
+这里需要弄清楚的一点是，19002与9080应该如何对应上。从现在的情况来看，19002应该配置在gateway这边，负责转接外网的流量。9080应该配置在VirtualService这边，负责将外网流量对应到内网服务上。
+
+感觉这个更加复杂了，因此还是先参考官方的版本。
+
+#### 进行网关编写
+
 由于productpage是部署在istio上的，需要设置入口网关
 
-Service:
+Service使用服务自带的Service，其他的也使用自带的部分（刨除了其他服务，因为我只需要一个productpage进行测试）
 ```yaml
-
+apiVersion: v1
+kind: Service
+metadata:
+  name: productpage
+  labels:
+    app: productpage
+    service: productpage
+spec:
+  ports:
+  - port: 9080
+    name: http
+  selector:
+    app: productpage
 ```
 
 Gateway:
@@ -168,7 +255,7 @@ Gateway:
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: produgepage-gateway
+  name: productpage-gateway
 spec:
   selector:
     istio: ingressgateway # use Istio default gateway implementation
@@ -191,18 +278,74 @@ spec:
   hosts:
   - "*"
   gateways:
-  - produgepage-gateway
+  - productpage-gateway
   http:
+  - match:
+    - uri:
+        prefix: /productpage
+    - uri:
+        prefix: /
     route:
     - destination:
         port:
-          number: 8000
-        host: produgepage
+          number: 9080
+        host: productpage
 ```
 
+#### 测试访问
 
+```bash
+export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}') 
+export INGRESS_HOST=$(kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}')
+```
+
+访问`curl -s -I "http://$INGRESS_HOST:$INGRESS_PORT"`或者加上`/productpage`都可以。问题也很明显，全部都会被转接到这一个服务上，我暂时还没有想到怎么做NodePort，之前试了一下发现转不过去……
 
 ### 调整节点亲和
 
 为了充分利用节点资源，需要将两个发送端实例和接收端实例放在不同的物理机节点上。
 
+下面为作为发送端的gatling脚本，设置了affinity进行节点亲和，同时设置了toleration使其能够部署在该节点上。
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatling
+  labels:
+    app: gatling
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gatling
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: gatling
+        version: v1
+    spec:
+      containers:
+      - name: gatling
+        image: ubuntu-wtynettest:0.0.1
+        imagePullPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                    - workflow-1
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+```
+
+## 内网压力测试
+
+测试反而是最好做的，`kubectl exec -it gatling-5998854d89-mkfwq bash`，登陆后运行gatling，完成。

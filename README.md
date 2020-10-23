@@ -1,5 +1,8 @@
 # 博客缓存页面
 
+* [github](https://github.com/wtysos11/blogWiki)
+* [gitee](https://gitee.com/wtywty/blogWiki)
+
 本仓库内存放的是最底层的思考，所有底稿和原始资料将会放在这里，可以直接通过`git clone`下载全部文章数据。
 内容会在issues中以label的形式进行组织，同时会在wiki内进行总结性的组织。wiki的[index](https://github.com/wtysos11/blogWiki/wiki/%E7%B4%A2%E5%BC%95%E5%AF%BC%E8%88%AA)，之后会考虑在wiki中另外添加一些分目录，不过可能要等到自己写的东西比较多的时候再搞了。
 Code中原则上只保留一些代码，具体留什么我也没想好，主要是用git更新便于进行版本控制，但是看起来很难受，而且在浏览器端操作也不是那么方便。

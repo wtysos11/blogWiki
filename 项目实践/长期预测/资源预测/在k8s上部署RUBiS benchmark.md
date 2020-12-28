@@ -186,8 +186,14 @@ RUN sudo sed -e 's|^mirrorlist=|#mirrorlist=|g' \
     && sudo yum makecache \ 
     && sudo yum install -y ...
 
-CMD ["sleep infinity"]
+CMD ["sh","-c","sleep infinity"]
 ```
+
+#### 重新初始化
+
+有时候需要删除数据库进行重新初始化，比如大量拍卖品过期，或者一些脚本配置错误等。
+
+远程登陆mysql服务器，执行`drop database rubis`删除rubis数据库后，再次执行之前的操作导入，并用client写入数据即可。
 
 ### php配置
 
@@ -220,7 +226,7 @@ FROM php:7.2-apache
 ENV HOSTNAME="10.247.188.145"
 ENV SQLUSER="rubis"
 ENV SQLPASSWD="password"
-ENV SQLPORT="31107"
+ENV SQLPORT="3306"
 
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/bin/
 
@@ -264,7 +270,6 @@ function getDatabaseLink(&$link)
   $port = getenv("SQLPORT");
   $link = mysqli_connect($hostname,$user,$passwd,'rubis',$port);
 //...
-
 ```
 
 #### 一些坑
@@ -272,12 +277,68 @@ function getDatabaseLink(&$link)
 1. 在进入apahce-php镜像中修改php代码的时候，新建的php代码必须要`chmod 777`，不然apache服务器将没有访问权限（因为在镜像中权限一般都是root级别）
 2. php7官方的包中默认是不带`mysqli`的，这就很难受了。直接改写`/usr/local/etc/php/php.ini`中第901行的分号是没有用的，因为它就没带这个。需要按照[插件安装](https://github.com/mlocati/docker-php-extension-installer)里面的步骤修改Dockerfile来把它装上。使用`php -m`可以列出所有能用的插件。
 3. 一开始的时候mysql在k8s中的访问方式是NodePort，但是在php服务器中它居然无法访问到外部的这个IP（挺奇怪的，但是可以访问到istio的ingressgateway），可能是DNS配置问题。我后来改用ClusterIP之后就可以了。
+4. github的php代码里面是有一些有问题的，特别是mysql部分，需要进行修改。我首先置换了所有`mysql_`为`mysqli_`，然后对`mysqli_query`单独处理，做了一个兼容 方法来置换两个输入参数。
+5. 官方的`StoreComment.php`文件存在着很严重的问题，69行和77行的`mysql_query`居然只有一个参数，这竟然是官方发的包……
+6. 一些SQL语句不兼容，`AboutMe.php`中的66行有问题，应该去掉最后的GROUP BY。
 
-### 客户端
+### 客户端 
 
 客户端应该还是要配置的，有两个作用，一个是初始化服务器，另一个是模拟应用请求对rubis进行测试。
 
 客户端是使用java来实现的，而且依赖的版本很老（`jdk 1.3.1`），但是跑了一下代码，虽然有些特性deprecated了，但是应该还是能跑起来的。
 
 步骤：
-1. 修改Client文件夹中的`rubis.properties`文件，主要修改以下几个条目：apache服务器IP/域名`httpd_hostname`、Apache服务器端口`httpd_port`、`httpd_use_version`（使用的服务器版本，目前为PHP）
+1. 修改Client文件夹中的`rubis.properties`文件，重点参考[rubis配置](https://www.cnblogs.com/damn-chris/archive/2012/03/11/2390275.html)这篇文章。
+    主要修改以下几个条目：
+    * apache服务器IP/域名`httpd_hostname`、Apache服务器端口`httpd_port`、`httpd_use_version`（使用的服务器版本，目前为PHP）。
+    * 修改产生的用户数量和商品数量，先取小一点，后面有需要了再取更大的值。
+    * 从语意上来说，数据库反而是不用配置的，我查阅了源代码发现唯一用到数据库地址的地方是后面进行模拟用户的时候。也就是说初始化Database将全部通过访问Apache服务器完成。
+        产生的用户是从1开始进行编号的，`firstname`为`Greati`、`lastname`为`Useri`、`nickname`为`useri`、`password`为`passwordi`，region为(i%numberofRegions)
+2. 构建镜像，计划使用`ubuntu:18.04`作为基准镜像，并安装供Client运行的需求。目前主要是`jdk 1.3.1`，也不知道有没有这么低版本的jdk。（先尝试openjdk8，直接用apt-get来安装的话似乎可以不用配置环境变量）
+3. 尝试在docker中进行编译，看能不能跑起来，尝试在k8s集群中运行来初始化数据库（似乎也不用非得在k8s上跑，直接用本地的docker一样可以起到相同的作用）
+    * 在RUBiS根目录，即Makefile所在位置执行`make client`，进行编译
+    * 执行`make initDB PARAM='all'`，其中PARAM一共有五种选择，`all`是生成所有数据，`users`只生成用户，`items`只生成物品，`bids`生成竞拍，`comments`生成注释。
+    * 最终生成的物品数量不仅取决于`old_item`的数目，也有`/database/ebay_simple_categories.txt`的影响，大概有3W多个物品，最终初始化数据库花了一个多小时，并发量在150左右。
+4. 查阅代码，看能不能将simulator跑起来。
+    * 代码逻辑主要在
+
+参考原来的ubuntu:18.04的`/etc/apt/sources.list`中有用的仓库名称：
+```bash
+deb http://archive.ubuntu.com/ubuntu/ bionic main restricted
+deb http://archive.ubuntu.com/ubuntu/ bionic-updates multiverse
+deb http://archive.ubuntu.com/ubuntu/ bionic-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu/ bionic-security main restricted
+deb http://security.ubuntu.com/ubuntu/ bionic-security universe
+deb http://security.ubuntu.com/ubuntu/ bionic-security multiverse
+```
+
+域名上主要包括`http://archive.ubuntu.com`与`http://security.ubuntu.com`这两个，只要将这两个用sed命令替换成国内源即可完成更新，不用想之前那样还需要手动将新的仓库源导入到镜像中。
+
+Client Dockerfile
+```Dockerfile
+FROM ubuntu:18.04
+MAINTAINER wtysos11 "wtysos11@gmail.com"
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+ENV CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+
+ADD RUBiS ./RUBiS
+
+RUN sed -i 's#http://archive.ubuntu.com#http://mirrors.ustc.edu.cn#g' /etc/apt/sources.list\
+  && sed -i 's#http://security.ubuntu.com#http://mirrors.ustc.edu.cn#g' /etc/apt/sources.list\
+  && apt-get update \ 
+  && apt-get install -y openjdk-8-jdk vim
+  #&& apt-get install gatling
+
+CMD ["sh","-c","sleep infinity"]
+
+```
+
+#### 一些坑
+
+1. 在修改的时候千万不要加入中文，这些旧版本的代码很多都没有utf-8支持，想要专门开的话需要修改很多东西。最简单的方法就是不要用中文。
+2. 修改配置文件的时候坑比较多
+   1. 一个是官方的`cjdbc_hostname`这个词条有问题，需要把前面的两个加号去掉并且给它赋值。
+   2. 官方的Regions description file是错的，需要修改`database_regions_file`字段。由于我的RUBiS是直接放在根目录的，因此去掉前面两个就可以了。
+   3. 配置文件中，两个描述字段的文字最好调小一些，不然服务器很容易出现414错误（URI too long）
+
